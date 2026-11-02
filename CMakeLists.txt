@@ -58,7 +58,7 @@ add_library(_${PROJECT_NAME} ${${PROJECT_NAME}_HEADERS} ${${PROJECT_NAME}_SOURCE
 set_target_properties(_${PROJECT_NAME} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
 target_link_libraries(_${PROJECT_NAME} PRIVATE
         OpenMP::OpenMP_CXX polyclipping earcut box2d fmt nlohmann_json ${OMPL_LIBRARIES} spdlog stdc++fs)
-target_include_directories(_${PROJECT_NAME} PUBLIC include PRIVATE ${OMPL_INCLUDE_DIRS})
+target_include_directories(_${PROJECT_NAME} PUBLIC include ${OMPL_INCLUDE_DIRS})
 target_compile_options(_${PROJECT_NAME} PRIVATE ${_opts})
 
 # Create executable

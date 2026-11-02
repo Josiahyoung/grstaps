@@ -33,7 +33,7 @@ endif(NOT TARGET fmt)
 # Json (Magic)
 if(NOT TARGET nlohmann_json)
     set(JSON_BuildTests OFF CACHE INTERNAL "")
-    add_subdirectory(json)
+    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../../grstaps-deps/json" "${CMAKE_CURRENT_BINARY_DIR}/json")
 endif(NOT TARGET nlohmann_json)
 
 # Graph Theory
