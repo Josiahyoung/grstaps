@@ -21,6 +21,7 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
+#include <limits>
 
 // External
 #include <fmt/format.h>
@@ -33,6 +34,12 @@ namespace grstaps
 {
     namespace iros2021
     {
+        namespace
+        {
+            // Clipper stores integer coordinates; OMPL uses original map units.
+            constexpr double kClipperScale = 1E6;
+        }
+
         IrosProblem::IrosProblem()
             : speedIndex(-1)
             , mpIndex(-1)
@@ -52,25 +59,27 @@ namespace grstaps
             m_map.push_back(convertBuildingsAndStreetsToPolygons2(map["buildings"], map["roads"]));
 
             mp_min = std::numeric_limits<float>::max();
-            mp_max = std::numeric_limits<float>::min();
+            mp_max = std::numeric_limits<float>::lowest();
             {
                 for(const ClipperLib2::Path& poly: m_map[0])
                 {
                     for(const ClipperLib2::IntPoint& point: poly)
                     {
-                        mp_min = std::min<float>(static_cast<float>(std::min(point.X, point.Y)), mp_min);
-                        mp_max = std::max<float>(static_cast<float>(std::max(point.X, point.Y)), mp_max);
+                        mp_min = std::min<float>(static_cast<float>(std::min(point.X, point.Y) / kClipperScale), mp_min);
+                        mp_max = std::max<float>(static_cast<float>(std::max(point.X, point.Y) / kClipperScale), mp_max);
                     }
                 }
                 mp_max += 10;
                 mp_min -= 10;
             }
 
-            // Aerial
-            ClipperLib2::Path boundary = {ClipperLib2::IntPoint(mp_min, mp_min),
-                                          ClipperLib2::IntPoint(mp_min, mp_max),
-                                          ClipperLib2::IntPoint(mp_max, mp_max),
-                                          ClipperLib2::IntPoint(mp_max, mp_min)};
+            // Aerial geometry must remain in Clipper's integer coordinate units.
+            const auto clipper_min = static_cast<ClipperLib2::cInt>(std::llround(mp_min * kClipperScale));
+            const auto clipper_max = static_cast<ClipperLib2::cInt>(std::llround(mp_max * kClipperScale));
+            ClipperLib2::Path boundary = {ClipperLib2::IntPoint(clipper_min, clipper_min),
+                                          ClipperLib2::IntPoint(clipper_min, clipper_max),
+                                          ClipperLib2::IntPoint(clipper_max, clipper_max),
+                                          ClipperLib2::IntPoint(clipper_max, clipper_min)};
             if(ClipperLib2::Area(boundary) < 0)
             {
                 std::reverse(boundary.begin(), boundary.end());
@@ -165,12 +174,14 @@ namespace grstaps
                         }
                     }
                 }
+                // Polygon lengths were measured in scaled Clipper units.
+                currentPath /= kClipperScale;
                 if(currentPath > longestPath)
                 {
                     longestPath = currentPath;
                 }
             }
-            if(speedIndex > 0)
+            if(speedIndex >= 0)
             {
                 float slowest = std::numeric_limits<float>::max();
                 for(int i = 0; i < m_robot_traits.size(); i++)
@@ -283,7 +294,7 @@ namespace grstaps
                 ClipperLib2::Path polygon;
                 for(const b2Vec2& point: shape)
                 {
-                    polygon.push_back(ClipperLib2::IntPoint(point.x * 1E6, point.y * 1E6));
+                    polygon.push_back(ClipperLib2::IntPoint(point.x * kClipperScale, point.y * kClipperScale));
                 }
 
                 // If "hole" flip it
