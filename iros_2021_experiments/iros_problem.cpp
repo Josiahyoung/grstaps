@@ -126,8 +126,8 @@ namespace grstaps
             mpIndex                       = config["mp_index"];
             config["mp_boundary_min"]     = mp_min;
             config["mp_boundary_max"]     = mp_max;
-            config["mp_query_time"]       = 0.1;
-            config["mp_connection_range"] = 1;
+            config["mp_query_time"]       = config.value("mp_query_time", 0.1);
+            config["mp_connection_range"] = config.value("mp_connection_range", 1.0);
             m_config                      = config;
             setWorstMP();
 
