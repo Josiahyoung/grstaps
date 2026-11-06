@@ -355,15 +355,16 @@ namespace grstaps
             std::vector<unsigned int> currentLocations = *m_starting_locations;
             for(int i = 0; i < actionOrder.size(); ++i)
             {
+                const int task_index = actionOrder[i];
                 auto traits = TaskAlloc->getSpeciesTraitDistribution();
                 for(int j = 0; j < TaskAlloc->getNumSpecies()->size(); j++)
                 {
-                    if(TaskAlloc->allocation[actionOrder[i] * TaskAlloc->getNumSpecies()->size() + j] == 1)
+                    if(TaskAlloc->allocation[task_index * TaskAlloc->getNumSpecies()->size() + j] == 1)
                     {
-                        if(currentLocations[j] != (*m_action_locations)[actionOrder[i]].first)
+                        if(currentLocations[j] != (*m_action_locations)[task_index].first)
                         {
                             std::tuple<bool, float, std::vector<std::pair<float, float>>> waypoints =
-                                (*m_motion_planners)[(*TaskAlloc->speciesTraitDistribution)[j][TaskAlloc->mp_Index]]->getWaypoints(currentLocations[j], (*m_action_locations)[actionOrder[i]].first);
+                                (*m_motion_planners)[(*TaskAlloc->speciesTraitDistribution)[j][TaskAlloc->mp_Index]]->getWaypoints(currentLocations[j], (*m_action_locations)[task_index].first);
 
                             if(std::get<0>(waypoints))
                             {
@@ -372,12 +373,7 @@ namespace grstaps
                                 {
                                     travel_time /= (*traits)[j][TaskAlloc->speedIndex];
                                 }
-                                if( (sched.stn[actionOrder[i]][0] + travel_time) > sched.actionStartTimes[actionOrder[i]]){
-                                    sched.actionStartTimes[actionOrder[i]] = sched.stn[actionOrder[i]][0] + travel_time;
-                                }
-
-                                currentLocations[j] = (*m_action_locations)[actionOrder[i]].second;
-                                start_end time      = {sched.stn[i][0], sched.stn[i][0] + travel_time};
+                                start_end time      = {sched.stn[task_index][0], sched.stn[task_index][0] + travel_time};
                                 single_plan step    = std::make_tuple(-1, time, std::get<2>(waypoints));
                                 motionPlans[j].push_back(step);
                             }
@@ -389,23 +385,20 @@ namespace grstaps
                         }
 
                         // If the action is a move action then add in the move time
-                        if((*m_action_locations)[actionOrder[i]].first != (*m_action_locations)[actionOrder[i]].second)
+                        if((*m_action_locations)[task_index].first != (*m_action_locations)[task_index].second)
                         {
                             std::tuple<bool, float, std::vector<std::pair<float, float>>> waypoints =
-                                (*m_motion_planners)[(*TaskAlloc->speciesTraitDistribution)[j][TaskAlloc->mp_Index]]->getWaypoints((*m_action_locations)[actionOrder[i]].first,
-                                                               (*m_action_locations)[actionOrder[i]].second);
+                                (*m_motion_planners)[(*TaskAlloc->speciesTraitDistribution)[j][TaskAlloc->mp_Index]]->getWaypoints((*m_action_locations)[task_index].first,
+                                                               (*m_action_locations)[task_index].second);
                             if(std::get<0>(waypoints))
                             {
-                                // float action_duration_half = (*TaskAlloc->actionDurations)[actionOrder[i]] / 2.0;
-                                // start_end  time = {stn[i][0] + action_duration_half, stn[i][1] -
-                                // action_duration_half};
                                 float travel_time = std::get<1>(waypoints);
                                 float adj_travel_time = travel_time;
                                 if(TaskAlloc->speedIndex != -1)
                                 {
                                     adj_travel_time = 0;
                                     for(int k=0; k <  TaskAlloc->getNumSpecies()->size(); ++k){
-                                        if(TaskAlloc->allocation[actionOrder[i] * TaskAlloc->getNumSpecies()->size() + k] == 1)
+                                        if(TaskAlloc->allocation[task_index * TaskAlloc->getNumSpecies()->size() + k] == 1)
                                         {
                                             if(adj_travel_time < (travel_time/(*traits)[k][TaskAlloc->speedIndex])){
                                                 adj_travel_time =  (travel_time/(*traits)[k][TaskAlloc->speedIndex]);
@@ -414,33 +407,28 @@ namespace grstaps
                                     }
                                 }
 
-                                start_end time   = {sched.stn[i][1] - adj_travel_time - (*TaskAlloc->actionDurations)[i], sched.stn[i][1]};
+                                start_end time   = {sched.stn[task_index][1] - adj_travel_time - (*TaskAlloc->actionDurations)[task_index], sched.stn[task_index][1]};
                                 if(time.first < 0.00001){
                                     time.first = 0;
                                 }
 
-                                /*
-                                if(i == sched.actionStartTimes.size()){
-                                    sched.actionStartTimes.push_back(sched.stn[i][1] - adj_travel_time - (*TaskAlloc->actionDurations)[i]);
-                                    if(sched.stn[i][1] - adj_travel_time - (*TaskAlloc->actionDurations)[i] < 0.00001){
-                                        sched.actionStartTimes[ sched.actionStartTimes.size()-1] = 0;
-                                    }
-                                }
-                                */
-
-                                single_plan step = std::make_tuple(i, time, std::get<2>(waypoints));
+                                // Export the actual task interval, including in-task motion
+                                // but excluding the preceding transfer to the task's start.
+                                sched.actionStartTimes[task_index] = time.first;
+                                single_plan step = std::make_tuple(task_index, time, std::get<2>(waypoints));
                                 motionPlans[j].push_back(step);
                             }
                         }
-                        // The movement required during action i is impossible
+                        // Stationary task: its interval contains only the base duration.
                         else
                         {
-                            start_end time   = {sched.stn[i][1] - (*TaskAlloc->actionDurations)[i], sched.stn[i][1]};
+                            start_end time   = {sched.stn[task_index][1] - (*TaskAlloc->actionDurations)[task_index], sched.stn[task_index][1]};
                             std::vector<std::pair<float, float>> waypoints = std::vector<std::pair<float, float>>();
-                            single_plan step = std::make_tuple(i, time, waypoints);
+                            sched.actionStartTimes[task_index] = time.first;
+                            single_plan step = std::make_tuple(task_index, time, waypoints);
                             motionPlans[j].push_back(step);
-                            //    return std::pair<bool, vector<agent_motion_plans>>(false, motionPlans);
                         }
+                        currentLocations[j] = (*m_action_locations)[task_index].second;
                     }
                 }
             }
