@@ -3,20 +3,20 @@
     "buildings": [],
     "hospital": {
         "coord": {
-            "x": 0,
-            "y": 0
+            "x": 10,
+            "y": 10
         }
     },
     "fire_station": {
         "coord": {
-            "x": 0.5,
-            "y": 0
+            "x": 70,
+            "y": 10
         }
     },
     "construction_company": {
         "coord": {
-            "x": 1,
-            "y": 0
+            "x": 70,
+            "y": 90
         }
     },
     "speed_index": 2,
@@ -54,5 +54,7 @@
             1
         ]
     ],
-    "ordering_constraints": []
+    "ordering_constraints": [],
+    "mp_query_time": 1,
+    "mp_connection_range": 150
 }
