@@ -1,0 +1,58 @@
+{
+    "streets": [],
+    "buildings": [],
+    "hospital": {
+        "coord": {
+            "x": 0,
+            "y": 0
+        }
+    },
+    "fire_station": {
+        "coord": {
+            "x": 0.5,
+            "y": 0
+        }
+    },
+    "construction_company": {
+        "coord": {
+            "x": 1,
+            "y": 0
+        }
+    },
+    "speed_index": 2,
+    "mp_index": 4,
+    "robot_start_locations": [
+        0
+    ],
+    "robot_traits": [
+        [
+            1,
+            0,
+            1,
+            0,
+            1
+        ]
+    ],
+    "tasks": [
+        "inspect_move"
+    ],
+    "tasks_durations": [
+        2
+    ],
+    "tasks_trait_requirements": [
+        [
+            1,
+            0,
+            0,
+            0,
+            0
+        ]
+    ],
+    "tasks_start_end": [
+        [
+            0,
+            1
+        ]
+    ],
+    "ordering_constraints": []
+}
