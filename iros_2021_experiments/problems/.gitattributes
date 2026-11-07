@@ -1,0 +1,2 @@
+# Small scenario configurations are ordinary Git text files, not LFS objects.
+**/config.json -filter diff merge text
